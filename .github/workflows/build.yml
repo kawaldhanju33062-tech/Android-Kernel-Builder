@@ -24,7 +24,7 @@ jobs:
       repos: ${{ steps.generate-matrix.outputs.repos }}
     steps:
       - name: "😄 Checkout"
-        uses: actions/checkout@v4  # Updated to v4
+        uses: actions/checkout@v4
 
       - name: "😆 Generate Matrix"
         id: generate-matrix
@@ -59,7 +59,10 @@ jobs:
       - name: "⭐ Install prerequisites"
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential bc curl git zip ftp gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev lftp zstd wget libfl-dev python2 python3 libarchive-tools jq
+          # Removed python2, added python3 and python-is-python3
+          sudo apt-get install -y build-essential bc curl git zip ftp gcc-aarch64-linux-gnu \
+          gcc-arm-linux-gnueabi libssl-dev lftp zstd wget libfl-dev python3 python3-pip \
+          python-is-python3 libarchive-tools jq
 
       - name: "🌟 Clone kernel source"
         working-directory: ./${{ env.kernelDir }}
@@ -117,9 +120,8 @@ jobs:
         run: make ${{ steps.generate-args.outputs.args }}
 
       - name: "📦 Upload Artifacts"
-        uses: actions/upload-artifact@v4  # Updated to v4
+        uses: actions/upload-artifact@v4
         with:
-          # V4 REQUIRES unique names for every upload in a matrix
           name: Kernel-${{ env.kernelDevice }}-${{ github.run_id }}
           path: |
             ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image*
