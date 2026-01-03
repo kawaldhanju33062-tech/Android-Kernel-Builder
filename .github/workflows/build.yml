@@ -26,7 +26,7 @@ jobs:
       - name: "⭐ Install prerequisites"
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential bc curl git zip ftp gcc-aarch64-linux-gnu \
+          sudo apt-get install -y build-essential bc curl git zip gcc-aarch64-linux-gnu \
           gcc-arm-linux-gnueabi libssl-dev lftp zstd wget libfl-dev python3 \
           python-is-python3 libarchive-tools jq device-tree-compiler libelf-dev lz4
 
@@ -35,51 +35,43 @@ jobs:
           mkdir -p ${{ env.kernelDir }}
           git clone --depth=1 https://github.com/kawaldhanju33062-tech/SM-M146B-Kernel-Source -b main ${{ env.kernelDir }}/kernel_src
 
-      - name: "💫 Get ZyC-Clang"
+      - name: "💫 Get Toolchain (Proton-Clang)"
         run: |
-          git clone --depth=1 https://github.com/ZyCromerZ/Clang -b main ${{ env.kernelDir }}/zyc-clang
-          chmod -R +x ${{ env.kernelDir }}/zyc-clang/bin
-
-      - name: "🔧 Samsung Header Fixer"
-        working-directory: ./${{ env.kernelDir }}/kernel_src
-        run: |
-          # Fix common missing Exynos/Samsung headers by symlinking them to expected locations
-          mkdir -p include/linux
-          [ -d "drivers/soc/samsung" ] && find drivers/soc/samsung -name "*.h" -exec ln -sf $(pwd)/{} include/linux/ \;
-          [ -d "drivers/devfreq/samsung" ] && find drivers/devfreq/samsung -name "*.h" -exec ln -sf $(pwd)/{} include/linux/ \;
-          echo "Headers symlinked successfully."
+          mkdir -p ${{ env.kernelDir }}/toolchain
+          cd ${{ env.kernelDir }}/toolchain
+          # Using Proton-Clang: highly compatible with Exynos and a direct download link
+          wget https://github.com/kdrag0n/proton-clang/archive/refs/heads/master.tar.gz -O clang.tar.gz
+          tar -xf clang.tar.gz --strip-components=1
+          rm clang.tar.gz
+          chmod -R +x bin/
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/kernel_src
         run: |
-          TC_PATH=$(readlink -f ../zyc-clang/bin)
+          TC_PATH=$(readlink -f ../toolchain/bin)
+          export PATH="$TC_PATH:$PATH"
           make O=../${{ env.OUT_DIR }} ARCH=arm64 \
-          CC="$TC_PATH/clang" \
-          LD="$TC_PATH/ld.lld" \
-          AR="$TC_PATH/llvm-ar" \
-          NM="$TC_PATH/llvm-nm" \
-          OBJCOPY="$TC_PATH/llvm-objcopy" \
-          OBJDUMP="$TC_PATH/llvm-objdump" \
-          STRIP="$TC_PATH/llvm-strip" \
-          CROSS_COMPILE="$TC_PATH/aarch64-linux-gnu-" \
-          CROSS_COMPILE_ARM32="$TC_PATH/arm-linux-gnueabi-" \
+          CC=clang \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
           LLVM=1 LLVM_IAS=1 \
           s5e8535-m14xnsxx_defconfig
 
       - name: "🎶 Build kernel"
         working-directory: ./${{ env.kernelDir }}/kernel_src
         run: |
-          TC_PATH=$(readlink -f ../zyc-clang/bin)
+          TC_PATH=$(readlink -f ../toolchain/bin)
+          export PATH="$TC_PATH:$PATH"
           make -j$(nproc --all) O=../${{ env.OUT_DIR }} ARCH=arm64 \
-          CC="$TC_PATH/clang" \
-          LD="$TC_PATH/ld.lld" \
-          AR="$TC_PATH/llvm-ar" \
-          NM="$TC_PATH/llvm-nm" \
-          OBJCOPY="$TC_PATH/llvm-objcopy" \
-          OBJDUMP="$TC_PATH/llvm-objdump" \
-          STRIP="$TC_PATH/llvm-strip" \
-          CROSS_COMPILE="$TC_PATH/aarch64-linux-gnu-" \
-          CROSS_COMPILE_ARM32="$TC_PATH/arm-linux-gnueabi-" \
+          CC=clang \
+          AR=llvm-ar \
+          NM=llvm-nm \
+          OBJCOPY=llvm-objcopy \
+          OBJDUMP=llvm-objdump \
+          STRIP=llvm-strip \
+          LD=ld.lld \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
           LLVM=1 LLVM_IAS=1
 
       - name: "📦 Upload Artifacts"
