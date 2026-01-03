@@ -38,15 +38,21 @@ jobs:
       - name: "💫 Get ZyC-Clang"
         run: |
           git clone --depth=1 https://github.com/ZyCromerZ/Clang -b main ${{ env.kernelDir }}/zyc-clang
-          # Ensure execution permissions
           chmod -R +x ${{ env.kernelDir }}/zyc-clang/bin
+
+      - name: "🔧 Samsung Header Fixer"
+        working-directory: ./${{ env.kernelDir }}/kernel_src
+        run: |
+          # Fix common missing Exynos/Samsung headers by symlinking them to expected locations
+          mkdir -p include/linux
+          [ -d "drivers/soc/samsung" ] && find drivers/soc/samsung -name "*.h" -exec ln -sf $(pwd)/{} include/linux/ \;
+          [ -d "drivers/devfreq/samsung" ] && find drivers/devfreq/samsung -name "*.h" -exec ln -sf $(pwd)/{} include/linux/ \;
+          echo "Headers symlinked successfully."
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/kernel_src
         run: |
-          # Get absolute path for the toolchain bin
           TC_PATH=$(readlink -f ../zyc-clang/bin)
-          
           make O=../${{ env.OUT_DIR }} ARCH=arm64 \
           CC="$TC_PATH/clang" \
           LD="$TC_PATH/ld.lld" \
@@ -64,7 +70,6 @@ jobs:
         working-directory: ./${{ env.kernelDir }}/kernel_src
         run: |
           TC_PATH=$(readlink -f ../zyc-clang/bin)
-          
           make -j$(nproc --all) O=../${{ env.OUT_DIR }} ARCH=arm64 \
           CC="$TC_PATH/clang" \
           LD="$TC_PATH/ld.lld" \
