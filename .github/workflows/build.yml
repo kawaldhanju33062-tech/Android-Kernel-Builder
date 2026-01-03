@@ -24,7 +24,7 @@ jobs:
       repos: ${{ steps.generate-matrix.outputs.repos }}
     steps:
       - name: "😄 Checkout"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4  # Updated to v4
 
       - name: "😆 Generate Matrix"
         id: generate-matrix
@@ -45,7 +45,6 @@ jobs:
         repos: ${{ fromJSON(needs.Set-repos.outputs.repos) }}
     env:
       kernelDir: "build_dir"
-      # Priority: 1. Manual Input (if filled) | 2. repos.json
       kernelRepo: ${{ github.event.inputs.kernel_repo || matrix.repos.kernelSource.repo }}
       kernelBranch: ${{ github.event.inputs.kernel_branch || matrix.repos.kernelSource.branch }}
       kernelName: "kernel_src"
@@ -93,7 +92,6 @@ jobs:
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
           mkdir -p $(pwd)/${{ env.OUT_DIR }}
 
-          # Loop through possible make arguments from JSON
           for key in ARCH CROSS_COMPILE CLANG_TRIPLE CROSS_COMPILE_ARM32 AR CC; do
             val=$(echo $params | jq -r ".$key")
             if [ "$val" != "null" ] && [ -n "$val" ]; then
@@ -119,9 +117,10 @@ jobs:
         run: make ${{ steps.generate-args.outputs.args }}
 
       - name: "📦 Upload Artifacts"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # Updated to v4
         with:
-          name: Kernel-${{ env.kernelDevice }}
+          # V4 REQUIRES unique names for every upload in a matrix
+          name: Kernel-${{ env.kernelDevice }}-${{ github.run_id }}
           path: |
             ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/Image*
             ./${{ env.kernelDir }}/${{ env.OUT_DIR }}/arch/${{ env.ARCH }}/boot/*.dtb
