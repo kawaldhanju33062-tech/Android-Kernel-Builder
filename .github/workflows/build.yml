@@ -14,7 +14,7 @@ on:
       kernel_branch:
         description: 'Branch'
         required: false
-        default: 'master'
+        default: 'main'
 
 jobs:
   Set-repos:
@@ -39,7 +39,7 @@ jobs:
     needs:
       - Set-repos
     strategy:
-      max-parallel: 2
+      max-parallel: 1
       fail-fast: false
       matrix:
         repos: ${{ fromJSON(needs.Set-repos.outputs.repos) }}
@@ -60,8 +60,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential bc curl git zip ftp gcc-aarch64-linux-gnu \
-          gcc-arm-linux-gnueabi libssl-dev lftp zstd wget libfl-dev python3 python3-pip \
-          python-is-python3 libarchive-tools jq device-tree-compiler
+          gcc-arm-linux-gnueabi libssl-dev lftp zstd wget libfl-dev python3 \
+          python-is-python3 libarchive-tools jq device-tree-compiler libelf-dev lz4
 
       - name: "🌟 Clone kernel source"
         working-directory: ./${{ env.kernelDir }}
@@ -80,12 +80,8 @@ jobs:
             branch=$(echo $toolchains | jq -r ".[$i].branch")
             git clone --recursive --branch $branch $repo $name --depth=1
             
-            # Add ALL potential bin folders to PATH
-            if [ -d "$(pwd)/$name/bin" ]; then
-              echo "$(pwd)/$name/bin" >> $GITHUB_PATH
-            fi
-            # Some toolchains have nested bins (like Clang)
-            find $(pwd)/$name -type d -name "bin" >> $GITHUB_PATH || true
+            # Add bin folders to PATH
+            find $(pwd)/$name -type d -name "bin" >> $GITHUB_PATH
           done
 
       - name: "😎 Set args"
@@ -97,13 +93,11 @@ jobs:
           ARCH=$(echo $params | jq -r ".ARCH")
           echo "ARCH=$ARCH" >> $GITHUB_ENV
           
-          # Initialize base args
           args="-j$(nproc --all) O=$(pwd)/${{ env.OUT_DIR }}"
           mkdir -p $(pwd)/${{ env.OUT_DIR }}
 
           # Parse matrix params into make arguments
-          # We use -r to get raw strings from JQ
-          for key in ARCH CROSS_COMPILE CLANG_TRIPLE CROSS_COMPILE_ARM32 AR CC NM OBJCOPY OBJDUMP STRIP; do
+          for key in ARCH CROSS_COMPILE CLANG_TRIPLE CROSS_COMPILE_ARM32 AR CC LD NM OBJCOPY OBJDUMP STRIP; do
             val=$(echo $params | jq -r ".$key // empty")
             if [ -n "$val" ] && [ "$val" != "null" ]; then
               args="$args $key=$val"
@@ -121,15 +115,11 @@ jobs:
 
       - name: "👍 Make defconfig"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
-        run: |
-          # Use the generated args for the config step
-          make ${{ steps.generate-args.outputs.args }} ${{ env.DEFCONFIG_NAME }}
+        run: make ${{ steps.generate-args.outputs.args }} ${{ env.DEFCONFIG_NAME }}
 
       - name: "🎶 Build kernel"
         working-directory: ./${{ env.kernelDir }}/${{ env.kernelName }}
-        run: |
-          # Detailed error logging
-          make ${{ steps.generate-args.outputs.args }} || (echo "BUILD FAILED - Check logs above for specific compiler errors" && exit 1)
+        run: make ${{ steps.generate-args.outputs.args }}
 
       - name: "📦 Upload Artifacts"
         uses: actions/upload-artifact@v4
