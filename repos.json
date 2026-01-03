@@ -4,23 +4,23 @@
       "name": "SM-M146B-Kernel",
       "repo": "https://github.com/kawaldhanju33062-tech/SM-M146B-Kernel-Source",
       "branch": "main",
-      "device": "m14x"
+      "device": "s5e8535-m14xnsxx"
     },
     "withKernelSU": true,
     "toolchains": [
       {
         "repo": "https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86",
-        "branch": "master-kernel-build-2023",
+        "branch": "main",
         "name": "clang"
       },
       {
         "repo": "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9",
-        "branch": "master",
+        "branch": "main",
         "name": "gcc64"
       },
       {
         "repo": "https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9",
-        "branch": "master",
+        "branch": "main",
         "name": "gcc32"
       }
     ],
