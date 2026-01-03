@@ -1,31 +1,13 @@
-[
-  {
-    "kernelSource": {
-      "name": "SM-M146B-Kernel",
-      "repo": "https://github.com/kawaldhanju33062-tech/SM-M146B-Kernel-Source",
-      "branch": "main",
-      "device": "s5e8535-m14xnsxx"
-    },
-    "withKernelSU": true,
-    "toolchains": [
-      {
-        "repo": "https://github.com/ZyCromerZ/ZyC-Clang",
-        "branch": "14",
-        "name": "zyc-clang"
-      }
-    ],
-    "params": {
-      "ARCH": "arm64",
-      "CC": "clang",
-      "AR": "llvm-ar",
-      "NM": "llvm-nm",
-      "OBJCOPY": "llvm-objcopy",
-      "OBJDUMP": "llvm-objdump",
-      "STRIP": "llvm-strip",
-      "LD": "ld.lld",
-      "CROSS_COMPILE": "aarch64-linux-gnu-",
-      "CROSS_COMPILE_ARM32": "arm-linux-gnueabi-"
-    }
-  }
-]
+      - name: "💫 Get Toolchain (Resilient)"
+        working-directory: ./${{ env.kernelDir }}
+        run: |
+          # Use a public link that doesn't prompt for auth
+          git clone --depth=1 https://github.com/ZyCromerZ/Clang.git -b main zyc-clang
+          
+          # If the clone succeeded, add to path
+          if [ -d "zyc-clang/bin" ]; then
+             echo "$(pwd)/zyc-clang/bin" >> $GITHUB_PATH
+          else
+             echo "Clone failed, toolchain folder missing" && exit 1
+          fi
 
